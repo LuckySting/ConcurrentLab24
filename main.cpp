@@ -1,7 +1,8 @@
 #include <omp.h>
 #include <cmath>
 #include <cstdio>
-#include <Windows.h>
+#include <chrono>
+using namespace std::chrono;
 
 void qsort_serial(int *array, int start, int end) {
     if (end - start + 1 < 2) {
@@ -94,33 +95,39 @@ void run_parallel_sort() {
 
 void benchmark(void func(), int warmups, int benchmarks) {
     printf("Warm up %d times:\n", warmups);
-    ULONGLONG dwStart;
-    ULONGLONG dwStop;
     for (int i = 0; i < warmups; i++) {
-        dwStart = GetTickCount64();
+        auto start = high_resolution_clock::now();
         func();
-        dwStop = GetTickCount64();
-        printf("WarmUp %d: %llu milliseconds\n", i + 1, dwStop - dwStart);
+        auto stop = high_resolution_clock::now();
+        double ms = (double)(duration_cast<microseconds>(stop - start).count()) / 1000;
+        printf("WarmUp %d: %f ms\n", i + 1, ms);
     }
     printf("\nBenchmark %d times:\n", benchmarks);
-    ULONGLONG meanTime = 0;
+    double meanTime = 0;
     for (int i = 0; i < benchmarks; i++) {
-        dwStart = GetTickCount64();
+        auto start = high_resolution_clock::now();
         func();
-        dwStop = GetTickCount64();
-        printf("Benchmark %d: %llu milliseconds\n", i + 1, dwStop - dwStart);
-        meanTime += dwStop - dwStart;
+        auto stop = high_resolution_clock::now();
+        double ms = (double)(duration_cast<microseconds>(stop - start).count()) / 1000;
+        printf("Benchmark %d: %f ms\n", i + 1, ms);
+        meanTime += ms;
     }
-    printf("Mean time: %llu\n", meanTime / benchmarks);
+    printf("Mean time: %f\n", meanTime / benchmarks);
 }
 
 int main() {
-    array = new int[size];
-
-    for (int i = 0; i < size; i++) {
-        array[i] = rand();
+    int sizes[7] = {1000, 10000, 100000, 1000000, 10000000, 20000000, 30000000};
+    for (int i : sizes) {
+        size = i;
+        array = new int[size];
+        for (int j = 0; j < size; j++) {
+            array[j] = rand();
+        }
+        printf("\n%d\n", size);
+        printf("Serial:\n");
+        benchmark(run_serial_sort, 3, 5);
+        printf("Parallel:\n");
+        benchmark(run_parallel_sort, 3, 5);
     }
-    benchmark(run_serial_sort, 5, 10);
-    benchmark(run_parallel_sort, 5, 10);
     return 0;
 }
